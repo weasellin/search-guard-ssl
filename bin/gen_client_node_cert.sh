@@ -1,21 +1,32 @@
 #!/bin/bash
-set -e
+set -eu
 
 CA_PASS=$1
-CRT_C=$2
-CRT_O=$3
-CRT_OU=$4 
-CRT_ST=$5
 
-echo
-echo Enter Client-Keystore Secret
-unset KS_PASS
-read -p "- Keystore Secret: " -s KS_PASS ; echo
+if [ -z "$KS_PASS" ] ; then
+    echo
+    echo Enter Client-Keystore Secret
+    unset KS_PASS
+    read -p "- Keystore Secret: " -s KS_PASS ; echo
+fi
 
-echo
-echo Enter Client-Certificate Name
-unset CRT_CN
-read -p "- Common Name (CN): " CRT_CN
+if [ -z "$CRT_CLIENT_NAME" ] ; then
+    echo
+    echo Enter Client-Certificate Name
+    unset CRT_CLIENT_NAME
+    read -p "- Common Name (CN): " CRT_CLIENT_NAME
+fi
+CRT_CN="$CRT_CLIENT_NAME"
+
+if [ -z "$CRT_CLIENT_DNAME" ] ; then
+    CRT_C=$2
+    CRT_O=$3
+    CRT_OU=$4
+    CRT_ST=$5
+    unset CRT_CLIENT_DNAME
+    CRT_CLIENT_DNAME="CN=$CRT_CN, OU=$CRT_OU, O=$CRT_O, ST=$CRT_ST, C=$CRT_C"
+fi
+echo "Use DName: \"$CRT_CLIENT_DNAME\""
 
 BIN_PATH="keytool"
 
@@ -38,7 +49,7 @@ echo Generating keystore and certificate for node $CRT_CN
         -validity  712 \
         -keypass $KS_PASS \
         -storepass $KS_PASS \
-        -dname "CN=$CRT_CN, OU=$CRT_OU, O=$CRT_O, ST=$CRT_ST, C=$CRT_C"
+        -dname $CRT_CLIENT_DNAME
 
 echo Generating certificate signing request for node $CRT_CN
 
@@ -49,7 +60,7 @@ echo Generating certificate signing request for node $CRT_CN
         -keyalg     rsa \
         -keypass $KS_PASS \
         -storepass $KS_PASS \
-        -dname "CN=$CRT_CN, OU=$CRT_OU, O=$CRT_O, ST=$CRT_ST, C=$CRT_C"
+        -dname $CRT_CLIENT_DNAME
 
 echo Sign certificate request with CA
 openssl ca \
@@ -60,7 +71,7 @@ openssl ca \
     -extensions v3_req \
     -batch \
 	-passin pass:$CA_PASS \
-	-extensions server_ext 
+	-extensions server_ext
 
 echo "Import back to keystore (including CA chain)"
 
@@ -79,4 +90,4 @@ openssl pkcs12 -in "output/$CRT_CN-keystore.p12" -out "output/$CRT_CN.crt.pem" -
 cat "output/$CRT_CN.crt.pem" output/ca/chain-ca.pem  > "output/$CRT_CN.crtfull.pem"
 
 echo All done for $CRT_CN
-	
+

@@ -1,9 +1,6 @@
-FROM java:8
+FROM openjdk:8-jdk-alpine
 
-RUN \
-  apt-get update && \
-  apt-get install -y openssl && \
-  rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache bash openssl
 
 ENV wd /workdir
 ENV output ${wd}/output

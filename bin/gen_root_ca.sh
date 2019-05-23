@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eu
 
 rm -rf output/ca output/certs* output/crl output/*.jks
 
@@ -20,7 +20,7 @@ openssl req -new \
     -keyout output/ca/root-ca/private/root-ca.key \
 	-batch \
 	-passout pass:$CA_PASS
-	
+
 
 openssl ca -selfsign \
     -config etc/root-ca.conf \
@@ -29,9 +29,9 @@ openssl ca -selfsign \
     -extensions root_ca_ext \
 	-batch \
 	-passin pass:$CA_PASS
-	
+
 echo Root CA generated
-	
+
 mkdir -p output/ca/signing-ca/private output/ca/signing-ca/db output/crl output/certs
 chmod 700 output/ca/signing-ca/private
 
@@ -46,7 +46,7 @@ openssl req -new \
     -keyout output/ca/signing-ca/private/signing-ca.key \
 	-batch \
 	-passout pass:$CA_PASS
-	
+
 openssl ca \
     -config etc/root-ca.conf \
     -in output/ca/signing-ca.csr \
@@ -54,7 +54,7 @@ openssl ca \
     -extensions signing_ca_ext \
 	-batch \
 	-passin pass:$CA_PASS
-	
+
 echo Signing CA generated
 
 openssl x509 -in output/ca/root-ca.crt -out output/ca/root-ca.pem -outform PEM
